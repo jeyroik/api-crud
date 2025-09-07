@@ -79,6 +79,7 @@ $app->get('/{entity}/{id}', function (Request $request, Response $response, $arg
 
     $result = $item->__toArray();
     unset($result[Entity::FIELD__ENTITY]);
+    unset($result[Entity::FIELD__USER]);
 
     $response->getBody()->write(json_encode($result));
 
