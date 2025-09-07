@@ -8,7 +8,7 @@ use jeyroik\interfaces\attributes\IHaveId;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
-use Slim\Handlers\Strategies\RequestHandler;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -43,7 +43,7 @@ $beforeMiddleware = function (Request $request, RequestHandler $handler) use ($a
     }
 
     // Proceed with the next middleware
-    return $handler($request);
+    return $handler->handle($request);
 };
 
 $app->add($beforeMiddleware);
