@@ -61,6 +61,20 @@ $app->get('/{entity}/{id}', function (Request $request, Response $response, $arg
         Entity::FIELD__ENTITY => $args['entity'],
         Entity::FIELD__USER => $request->getHeaderLine('Authorization')
     ]);
+
+    if (!$item) {
+        $response->getBody()->write(json_encode([
+            'error' => 'item not found',
+            'error_details' => [
+                IHaveId::FIELD__ID => $args['id'],
+                Entity::FIELD__ENTITY => $args['entity'],
+                Entity::FIELD__USER => $request->getHeaderLine('Authorization')
+            ]
+        ]));
+
+        return $response;    
+    }
+
     $result = $item->__toArray();
     unset($result[Entity::FIELD__ENTITY]);
 
