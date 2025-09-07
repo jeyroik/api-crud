@@ -1,0 +1,21 @@
+{
+    "name": "jeyroik/api-crud",
+    "description": "Simple API CRUD",
+    "require": {
+        "jeyroik/i-have-repository-mongo": "0.*",
+        "jeyroik/ihr-plugin-dates": "0.*",
+        "slim/slim": "4.*"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "0.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "jeyroik\\": "src/",
+            "tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "stan": "vendor/bin/phpstan analyse -l 5 src"
+    }
+}
