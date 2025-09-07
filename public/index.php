@@ -80,6 +80,57 @@ $app->get('/{entity}/{id}', function (Request $request, Response $response, $arg
     $result = $item->__toArray();
     unset($result[Entity::FIELD__ENTITY]);
     unset($result[Entity::FIELD__USER]);
+    unset($result['_id']);
+
+    $response->getBody()->write(json_encode($result));
+
+    return $response;
+});
+
+$app->put('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
+    $json = json_decode($request->getBody(), true);
+    $json[Entity::FIELD__ENTITY] = $args['entity'];
+    $json[Entity::FIELD__USER] = $request->getHeaderLine('Authorization');
+    $r = new Router();
+    $db = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud');
+
+    /**
+     * @var Entity $item
+     */
+    $item = $db->findOne([
+        IHaveId::FIELD__ID => $args['id'],
+        Entity::FIELD__ENTITY => $args['entity'],
+        Entity::FIELD__USER => $request->getHeaderLine('Authorization')
+    ]);
+
+    if (!$item) {
+        $response->getBody()->write(json_encode([
+            'error' => 'item not found',
+            'error_details' => [
+                $args['entity'] => [
+                    IHaveId::FIELD__ID => $args['id']
+                ]
+            ]
+        ]));
+
+        return $response;    
+    }
+
+    foreach ($json as $key => $value) {
+        if (in_array($key, [Entity::FIELD__USER, Entity::FIELD__ENTITY, Entity::FIELD__CREATED_AT])) {
+            continue;
+        }
+
+        $item[$key] = $value;
+    }
+ 
+    $db->updateOne($item);
+    $item = $db->findOne([Entity::FIELD__ID => $item->getId()]);
+
+    $result = $item->__toArray();
+    unset($result[Entity::FIELD__ENTITY]);
+    unset($result[Entity::FIELD__USER]);
+    unset($result['_id']);
 
     $response->getBody()->write(json_encode($result));
 
