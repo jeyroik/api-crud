@@ -10,7 +10,7 @@ class Router implements IHaveRepository
 
     public function isAllowed(string $auth): bool
     {
-        $allowed = include __DIR__ . '/../../resources/allowed.php';
+        $allowed = include __DIR__ . '/../../resources/allowed_tokens.php';
 
         return isset($allowed[$auth]);
     }
