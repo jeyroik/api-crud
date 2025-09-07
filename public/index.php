@@ -1,5 +1,8 @@
 <?php
 
+use Dotenv\Parser\Entry;
+use jeyroik\components\Entity;
+use jeyroik\components\repositories\RepositoryMongo;
 use jeyroik\components\Router;
 use jeyroik\interfaces\attributes\IHaveId;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -45,15 +48,30 @@ $app->addErrorMiddleware(
 // Add routes
 $app->get('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
     $r = new Router();
-    $item = $r->getRepo($args['entity'])->findOne([IHaveId::FIELD__ID => $args['id']]);
-    $response->getBody()->write(json_encode($item->__toArray()));
+    $item = $r->getRepo(Entity::class)->findOne([
+        IHaveId::FIELD__ID => $args['id'],
+        Entity::FIELD__ENTITY => $args['entity'],
+        Entity::FIELD__USER => $request->getHeaderLine('Authorization')
+    ]);
+    $result = $item->__toArray();
+    unset($result[Entity::FIELD__ENTITY]);
+
+    $response->getBody()->write(json_encode($result));
 
     return $response;
 });
 
 $app->post('/{entity}/', function (Request $request, Response $response, $args) {
-    $json = $request->getBody();
-    $response->getBody()->write("args:" . $json);
+    $json = json_decode($request->getBody(), true);
+    $json[Entity::FIELD__ENTITY] = $args['entity'];
+    $json[Entity::FIELD__USER] = $request->getHeaderLine('Authorization');
+
+    $r = new Router();
+    $result = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud')->insertOne($json);
+    $result = $result->__toArray();
+    unset($result[Entity::FIELD__ENTITY]);
+
+    $response->getBody()->write(json_encode($result));
     return $response;
 });
 
