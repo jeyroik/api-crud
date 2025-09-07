@@ -46,6 +46,8 @@ $beforeMiddleware = function (Request $request, RequestHandler $handler) use ($a
     return $handler($request);
 };
 
+$app->add($beforeMiddleware);
+
 // Add error middleware
 $app->addErrorMiddleware(
     displayErrorDetails:true, 
