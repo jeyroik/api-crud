@@ -12,6 +12,11 @@ use Slim\Handlers\Strategies\RequestHandler;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+defined('MONGO__DSN') or define('MONGO__DSN', 'mongodb://localhost');
+defined('DB__CLASS') or define('DB__CLASS', RepositoryMongo::class);
+defined('DB__NAME') or define('DB__NAME', 'crud_entity');
+defined('REPOSITORY__PLUGINS_FILE') or define('REPOSITORY__PLUGINS_FILE', __DIR__ . '/resources/plugins.php');
+
 // Instantiate App
 $app = AppFactory::create();
 
