@@ -52,8 +52,8 @@ $app->get('/{entity}/{id}', function (Request $request, Response $response, $arg
 });
 
 $app->post('/{entity}/', function (Request $request, Response $response, $args) {
-    
-    $response->getBody()->write("args:" . json_encode($args));
+    $json = $request->getBody();
+    $response->getBody()->write("args:" . $json);
     return $response;
 });
 
