@@ -4,7 +4,8 @@
     "require": {
         "jeyroik/i-have-repository-mongo": "0.*",
         "jeyroik/ihr-plugin-dates": "0.*",
-        "slim/slim": "4.*"
+        "slim/slim": "4.*",
+        "slim/psr7": "1.*"
     },
     "require-dev": {
         "phpstan/phpstan": "0.*"
