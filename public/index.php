@@ -58,7 +58,7 @@ $app->addErrorMiddleware(
 // Add routes
 $app->get('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
     $r = new Router();
-    $item = $r->getRepo(Entity::class)->findOne([
+    $item = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud')->findOne([
         IHaveId::FIELD__ID => $args['id'],
         Entity::FIELD__ENTITY => $args['entity'],
         Entity::FIELD__USER => $request->getHeaderLine('Authorization')
@@ -68,9 +68,9 @@ $app->get('/{entity}/{id}', function (Request $request, Response $response, $arg
         $response->getBody()->write(json_encode([
             'error' => 'item not found',
             'error_details' => [
-                IHaveId::FIELD__ID => $args['id'],
-                Entity::FIELD__ENTITY => $args['entity'],
-                Entity::FIELD__USER => $request->getHeaderLine('Authorization')
+                $args['entity'] => [
+                    IHaveId::FIELD__ID => $args['id']
+                ]
             ]
         ]));
 
