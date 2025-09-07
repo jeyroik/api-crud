@@ -137,6 +137,42 @@ $app->put('/{entity}/{id}', function (Request $request, Response $response, $arg
     return $response;
 });
 
+$app->delete('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
+    $json = json_decode($request->getBody(), true);
+    $json[Entity::FIELD__ENTITY] = $args['entity'];
+    $json[Entity::FIELD__USER] = $request->getHeaderLine('Authorization');
+    $r = new Router();
+    $db = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud');
+
+    /**
+     * @var Entity $item
+     */
+    $item = $db->findOne([
+        IHaveId::FIELD__ID => $args['id'],
+        Entity::FIELD__ENTITY => $args['entity'],
+        Entity::FIELD__USER => $request->getHeaderLine('Authorization')
+    ]);
+
+    if (!$item) {
+        $response->getBody()->write(json_encode([
+            'error' => 'item not found',
+            'error_details' => [
+                $args['entity'] => [
+                    IHaveId::FIELD__ID => $args['id']
+                ]
+            ]
+        ]));
+
+        return $response;    
+    }
+ 
+    $db->deleteOne($item);
+
+    $response->getBody()->write(json_encode(['result' => 'success', 'details' => 'Item deleted']));
+
+    return $response;
+});
+
 $app->post('/{entity}/', function (Request $request, Response $response, $args) {
     $json = json_decode($request->getBody(), true);
     $json[Entity::FIELD__ENTITY] = $args['entity'];
