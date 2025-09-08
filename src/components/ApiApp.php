@@ -104,7 +104,7 @@ class ApiApp
             ]
         ]));
 
-        return $response;
+        return $response->withStatus(400);
     }
 
     public function returnError(string $entity, string $method, string $error, Response $response): Response
@@ -116,7 +116,7 @@ class ApiApp
             ]
         ]));
 
-        return $response;
+        return $response->withStatus(500);
     }
 
     public function getData(Request $request): array
