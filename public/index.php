@@ -23,6 +23,15 @@ defined('REPOSITORY__PLUGINS_FILE') or define(
 $app = AppFactory::create();
 $apiApp = new ApiApp();
 
+// Middleware для CORS
+$app->add(function ($request, $handler) {
+    $response = $handler->handle($request);
+    return $response
+        ->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+});
+
 $authMiddleware = function (Request $request, RequestHandler $handler) use ($app, $apiApp) {
     // Example: Check for a specific header before proceeding
     $auth = $request->getHeaderLine('Authorization');
@@ -99,6 +108,11 @@ $app->post('/{entity}/', function (Request $request, Response $response, $args) 
     $json[IApiEntity::FIELD__USER] = $request->getHeaderLine('Authorization');
 
     return $apiApp->insertOne($response, $args['entity'], $json);
+});
+
+//для кросс-доменных запросов
+$app->options('/{routes:.+}', function ($request, $response) {
+    return $response;
 });
 
 $app->run();
