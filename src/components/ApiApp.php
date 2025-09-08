@@ -5,11 +5,10 @@ use jeyroik\components\exceptions\ExceptionNotFound;
 use jeyroik\components\repositories\THasApiCrudRepo;
 use jeyroik\interfaces\attributes\IHaveId;
 use jeyroik\interfaces\entities\IApiEntity;
-use jeyroik\interfaces\repositories\IHaveRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-class ApiApp implements IHaveRepository
+class ApiApp
 {
     use THasApiCrudRepo;
 
