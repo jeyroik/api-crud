@@ -1,10 +1,9 @@
 <?php
 
-use Dotenv\Parser\Entry;
-use jeyroik\components\Entity;
 use jeyroik\components\repositories\RepositoryMongo;
-use jeyroik\components\Router;
-use jeyroik\interfaces\attributes\IHaveId;
+use jeyroik\components\ApiApp;
+use jeyroik\components\exceptions\ExceptionNotFound;
+use jeyroik\interfaces\entities\IApiEntity;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
@@ -22,8 +21,9 @@ defined('REPOSITORY__PLUGINS_FILE') or define(
 
 // Instantiate App
 $app = AppFactory::create();
+$apiApp = new ApiApp();
 
-$beforeMiddleware = function (Request $request, RequestHandler $handler) use ($app) {
+$authMiddleware = function (Request $request, RequestHandler $handler) use ($app, $apiApp) {
     // Example: Check for a specific header before proceeding
     $auth = $request->getHeaderLine('Authorization');
     if (!$auth) {
@@ -34,8 +34,7 @@ $beforeMiddleware = function (Request $request, RequestHandler $handler) use ($a
         return $response->withStatus(401);
     }
 
-    $r = new Router();
-    if (!$r->isAllowed($auth)) {
+    if (!$apiApp->isAllowed($auth)) {
         $response = $app->getResponseFactory()->createResponse();
         $response->getBody()->write('Access denied');
         
@@ -46,7 +45,7 @@ $beforeMiddleware = function (Request $request, RequestHandler $handler) use ($a
     return $handler->handle($request);
 };
 
-$app->add($beforeMiddleware);
+$app->add($authMiddleware);
 
 // Add error middleware
 $app->addErrorMiddleware(
@@ -56,135 +55,50 @@ $app->addErrorMiddleware(
 );
 
 // Add routes
-$app->get('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
-    $r = new Router();
-    $item = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud')->findOne([
-        IHaveId::FIELD__ID => $args['id'],
-        Entity::FIELD__ENTITY => $args['entity'],
-        Entity::FIELD__USER => $request->getHeaderLine('Authorization')
-    ]);
-
-    if (!$item) {
-        $response->getBody()->write(json_encode([
-            'error' => 'item not found',
-            'error_details' => [
-                $args['entity'] => [
-                    IHaveId::FIELD__ID => $args['id']
-                ]
-            ]
-        ]));
-
-        return $response;    
+$app->get('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        return $apiApp->findOne($response, $args['entity'], [
+            IApiEntity::FIELD__ID => $args['id'],
+            IApiEntity::FIELD__USER => $request->getHeaderLine('Authorization')    
+        ]);
+    } catch (ExceptionNotFound $e) {
+        return $apiApp->returnNotFound($args['entity'], $args['id'], $response);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'Get entity', $e->getMessage(), $response);
     }
-
-    $result = $item->__toArray();
-    unset($result[Entity::FIELD__ENTITY]);
-    unset($result[Entity::FIELD__USER]);
-    unset($result['_id']);
-
-    $response->getBody()->write(json_encode($result));
-
-    return $response;
 });
 
-$app->put('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
-    $json = json_decode($request->getBody(), true);
-    $json[Entity::FIELD__ENTITY] = $args['entity'];
-    $json[Entity::FIELD__USER] = $request->getHeaderLine('Authorization');
-    $r = new Router();
-    $db = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud');
-
-    /**
-     * @var Entity $item
-     */
-    $item = $db->findOne([
-        IHaveId::FIELD__ID => $args['id'],
-        Entity::FIELD__ENTITY => $args['entity'],
-        Entity::FIELD__USER => $request->getHeaderLine('Authorization')
-    ]);
-
-    if (!$item) {
-        $response->getBody()->write(json_encode([
-            'error' => 'item not found',
-            'error_details' => [
-                $args['entity'] => [
-                    IHaveId::FIELD__ID => $args['id']
-                ]
-            ]
-        ]));
-
-        return $response;    
+$app->put('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        return $apiApp->updateOne($response, $args['entity'], [
+            IApiEntity::FIELD__ID => $args['id'],
+            IApiEntity::FIELD__USER => $request->getHeaderLine('Authorization')
+        ], $apiApp->getData($request));
+    } catch (ExceptionNotFound $e) {
+        return $apiApp->returnNotFound($args['entity'], $args['id'], $response);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'Update entity', $e->getMessage(), $response);
     }
-
-    foreach ($json as $key => $value) {
-        if (in_array($key, [Entity::FIELD__USER, Entity::FIELD__ENTITY, Entity::FIELD__CREATED_AT])) {
-            continue;
-        }
-
-        $item[$key] = $value;
-    }
- 
-    $db->updateOne($item);
-    $item = $db->findOne([Entity::FIELD__ID => $item->getId()]);
-
-    $result = $item->__toArray();
-    unset($result[Entity::FIELD__ENTITY]);
-    unset($result[Entity::FIELD__USER]);
-    unset($result['_id']);
-
-    $response->getBody()->write(json_encode($result));
-
-    return $response;
 });
 
-$app->delete('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
-    $json = json_decode($request->getBody(), true);
-    $json[Entity::FIELD__ENTITY] = $args['entity'];
-    $json[Entity::FIELD__USER] = $request->getHeaderLine('Authorization');
-    $r = new Router();
-    $db = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud');
-
-    /**
-     * @var Entity $item
-     */
-    $item = $db->findOne([
-        IHaveId::FIELD__ID => $args['id'],
-        Entity::FIELD__ENTITY => $args['entity'],
-        Entity::FIELD__USER => $request->getHeaderLine('Authorization')
-    ]);
-
-    if (!$item) {
-        $response->getBody()->write(json_encode([
-            'error' => 'item not found',
-            'error_details' => [
-                $args['entity'] => [
-                    IHaveId::FIELD__ID => $args['id']
-                ]
-            ]
-        ]));
-
-        return $response;    
+$app->delete('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        return $apiApp->deleteOne($response, $args['entity'], [
+            IApiEntity::FIELD__ID => $args['id'],
+            IApiEntity::FIELD__USER => $request->getHeaderLine('Authorization')
+        ]);
+    } catch (ExceptionNotFound $e) {
+        return $apiApp->returnNotFound($args['entity'], $args['id'], $response);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'Delete item', $e->getMessage(), $response);
     }
- 
-    $db->deleteOne($item);
-
-    $response->getBody()->write(json_encode(['result' => 'success', 'details' => 'Item deleted']));
-
-    return $response;
 });
 
-$app->post('/{entity}/', function (Request $request, Response $response, $args) {
-    $json = json_decode($request->getBody(), true);
-    $json[Entity::FIELD__ENTITY] = $args['entity'];
-    $json[Entity::FIELD__USER] = $request->getHeaderLine('Authorization');
+$app->post('/{entity}/', function (Request $request, Response $response, $args) use ($apiApp) {
+    $json = $apiApp->getData($request);
+    $json[IApiEntity::FIELD__USER] = $request->getHeaderLine('Authorization');
 
-    $r = new Router();
-    $result = $r->getRepo(Entity::class, RepositoryMongo::class, 'crud')->insertOne($json);
-    $result = $result->__toArray();
-    unset($result[Entity::FIELD__ENTITY]);
-
-    $response->getBody()->write(json_encode($result));
-    return $response;
+    return $apiApp->insertOne($response, $args['entity'], $json);
 });
 
 $app->run();
