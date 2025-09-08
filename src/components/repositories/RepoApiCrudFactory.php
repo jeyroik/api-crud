@@ -1,7 +1,7 @@
 <?php
 namespace jeyroik\components\repositories;
 
-use jeyroik\components\ApiEntity;
+use jeyroik\components\entities\ApiEntity;
 use jeyroik\interfaces\repositories\IRepository;
 use jeyroik\interfaces\repositories\IRepositoryFactory;
 

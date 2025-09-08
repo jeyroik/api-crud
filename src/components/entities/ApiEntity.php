@@ -1,5 +1,5 @@
 <?php
-namespace jeyroik\components;
+namespace jeyroik\components\entities;
 
 use jeyroik\components\attributes\THasCreatedAt;
 use jeyroik\components\attributes\THasIdString;
