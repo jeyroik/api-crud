@@ -21,8 +21,7 @@ class ApiApp
         }
 
         $result = $item->__toArray();
-        unset($result[IApiEntity::FIELD__USER]);
-        unset($result[IApiEntity::FIELD__SYSTEM_ID]);
+        $this->vanishResponseData($result);
 
         $response->getBody()->write(json_encode($result));
 
@@ -49,8 +48,7 @@ class ApiApp
         $db->updateOne($item);
 
         $result = $item->__toArray();
-        unset($result[IApiEntity::FIELD__USER]);
-        unset($result[IApiEntity::FIELD__SYSTEM_ID]);
+        $this->vanishResponseData($result);
 
         $response->getBody()->write(json_encode($result));
 
@@ -81,6 +79,8 @@ class ApiApp
     {
         $result = $this->getRepo($entity)->insertOne($data);
         $result = $result->__toArray();
+
+        $this->vanishResponseData($result);
 
         $response->getBody()->write(json_encode($result));
         return $response;
@@ -122,5 +122,16 @@ class ApiApp
     public function getData(Request $request): array
     {
         return json_decode($request->getBody(), true);
+    }
+
+    protected function vanishResponseData(array &$data): void
+    {
+        if (isset($data[IApiEntity::FIELD__USER])) {
+            unset($data[IApiEntity::FIELD__USER]);
+        }
+
+        if (isset($data[IApiEntity::FIELD__SYSTEM_ID])) {
+            unset($data[IApiEntity::FIELD__SYSTEM_ID]);
+        }     
     }
 }
