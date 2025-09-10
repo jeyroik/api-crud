@@ -28,6 +28,23 @@ class ApiApp
         return $response;
     }
 
+    public function findAll(Response $response, string $entity, array $where, int $offset = 0, int $limit = 0): Response
+    {
+        $items = $this->getRepo($entity)->findAll($where, offset: $offset, limit: $limit);
+
+        $result = [];
+
+        foreach ($items as $item) {
+            $itemAsArray = $item->__toArray();
+            $this->vanishResponseData($itemAsArray);
+            $result[] = $itemAsArray;
+        }
+
+        $response->getBody()->write(json_encode($result));
+
+        return $response;
+    }
+
     public function updateOne(Response $response, string $entity, array $where, array $values): Response
     {
         $db = $this->getRepo($entity);

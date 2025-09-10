@@ -36,7 +36,7 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($app
     if ($request->getMethod() === 'OPTIONS') {
         return $handler->handle($request);
     }
-    
+
     // Example: Check for a specific header before proceeding
     $auth = $request->getHeaderLine('Authorization');
     if (!$auth) {
@@ -67,7 +67,17 @@ $app->addErrorMiddleware(
     logErrorDetails: true
 );
 
-// Add routes
+$app->get('/{entity}/{offset}/{limit}/', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        $where = $apiApp->getData($request);
+        $where[IApiEntity::FIELD__USER] = $request->getHeaderLine('Authorization');
+
+        return $apiApp->findAll($response, $args['entity'], $where, $args['offset'], $args['limit']);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'List entity', $e->getMessage(), $response);
+    }
+});
+
 $app->get('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app, $apiApp) {
     try {
         return $apiApp->findOne($response, $args['entity'], [
