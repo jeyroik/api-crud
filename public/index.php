@@ -3,6 +3,7 @@
 use jeyroik\components\repositories\RepositoryMongo;
 use jeyroik\components\ApiApp;
 use jeyroik\components\exceptions\ExceptionNotFound;
+use jeyroik\components\repositories\RepoApiCrudFactory;
 use jeyroik\interfaces\entities\IApiEntity;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -120,6 +121,13 @@ $app->delete('/{entity}/{id}', function (Request $request, Response $response, $
 $app->post('/{entity}/', function (Request $request, Response $response, $args) use ($apiApp) {
     $json = $apiApp->getData($request);
     $json[IApiEntity::FIELD__USER] = $request->getHeaderLine('Authorization');
+
+    $repo = RepoApiCrudFactory::get($args['entity'], DB__CLASS, DB__NAME);
+    $existed = $repo->findOne($json);
+
+    if ($existed) {
+        return $apiApp->returnError($args['entity'], 'create', 'Already exists', $response);
+    }
 
     return $apiApp->insertOne($response, $args['entity'], $json);
 });
