@@ -1,18 +1,43 @@
 <?php
 
-use jeyroik\components\Router;
-use jeyroik\interfaces\attributes\IHaveId;
+use jeyroik\components\repositories\RepositoryMongo;
+use jeyroik\components\ApiApp;
+use jeyroik\components\exceptions\ExceptionNotFound;
+use jeyroik\components\repositories\RepoApiCrudFactory;
+use jeyroik\interfaces\entities\IApiEntity;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
-use Slim\Handlers\Strategies\RequestHandler;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+defined('MONGO__DSN') or define('MONGO__DSN', getenv('MONGO__DSN') ?: 'mongodb://localhost');
+defined('DB__CLASS') or define('DB__CLASS', getenv('DB__CLASS') ?: RepositoryMongo::class);
+defined('DB__NAME') or define('DB__NAME', getenv('DB__NAME') ?: 'crud_entity');
+defined('REPOSITORY__PLUGINS_FILE') or define(
+    'REPOSITORY__PLUGINS_FILE', 
+    getenv('REPOSITORY__PLUGINS_FILE') ?: __DIR__ . '/../resources/plugins.php'
+);
+
 // Instantiate App
 $app = AppFactory::create();
+$apiApp = new ApiApp();
 
-$beforeMiddleware = function (Request $request, RequestHandler $handler) use ($app) {
+// Middleware для CORS
+$app->add(function ($request, $handler) {
+    $response = $handler->handle($request);
+    return $response
+        ->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+});
+
+$authMiddleware = function (Request $request, RequestHandler $handler) use ($app, $apiApp) {
+    if ($request->getMethod() === 'OPTIONS') {
+        return $handler->handle($request);
+    }
+
     // Example: Check for a specific header before proceeding
     $auth = $request->getHeaderLine('Authorization');
     if (!$auth) {
@@ -23,8 +48,7 @@ $beforeMiddleware = function (Request $request, RequestHandler $handler) use ($a
         return $response->withStatus(401);
     }
 
-    $r = new Router();
-    if (!$r->isAllowed($auth)) {
+    if (!$apiApp->isAllowed($auth)) {
         $response = $app->getResponseFactory()->createResponse();
         $response->getBody()->write('Access denied');
         
@@ -32,8 +56,10 @@ $beforeMiddleware = function (Request $request, RequestHandler $handler) use ($a
     }
 
     // Proceed with the next middleware
-    return $handler($request);
+    return $handler->handle($request);
 };
+
+$app->add($authMiddleware);
 
 // Add error middleware
 $app->addErrorMiddleware(
@@ -42,18 +68,72 @@ $app->addErrorMiddleware(
     logErrorDetails: true
 );
 
-// Add routes
-$app->get('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app) {
-    $r = new Router();
-    $item = $r->getRepo($args['entity'])->findOne([IHaveId::FIELD__ID => $args['id']]);
-    $response->getBody()->write(json_encode($item->__toArray()));
+$app->get('/{entity}/{offset}/{limit}/', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        $where = $apiApp->getData($request);
+        $where[IApiEntity::FIELD__USER] = $request->getHeaderLine('Authorization');
 
-    return $response;
+        return $apiApp->findAll($response, $args['entity'], $where, $args['offset'], $args['limit']);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'List entity', $e->getMessage(), $response);
+    }
 });
 
-$app->post('/{entity}/', function (Request $request, Response $response, $args) {
-    
-    $response->getBody()->write("args:" . json_encode($args));
+$app->get('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        return $apiApp->findOne($response, $args['entity'], [
+            IApiEntity::FIELD__ID => $args['id'],
+            IApiEntity::FIELD__USER => $request->getHeaderLine('Authorization')    
+        ]);
+    } catch (ExceptionNotFound $e) {
+        return $apiApp->returnNotFound($args['entity'], $args['id'], $response);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'Get entity', $e->getMessage(), $response);
+    }
+});
+
+$app->put('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        return $apiApp->updateOne($response, $args['entity'], [
+            IApiEntity::FIELD__ID => $args['id'],
+            IApiEntity::FIELD__USER => $request->getHeaderLine('Authorization')
+        ], $apiApp->getData($request));
+    } catch (ExceptionNotFound $e) {
+        return $apiApp->returnNotFound($args['entity'], $args['id'], $response);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'Update entity', $e->getMessage(), $response);
+    }
+});
+
+$app->delete('/{entity}/{id}', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    try {
+        return $apiApp->deleteOne($response, $args['entity'], [
+            IApiEntity::FIELD__ID => $args['id'],
+            IApiEntity::FIELD__USER => $request->getHeaderLine('Authorization')
+        ]);
+    } catch (ExceptionNotFound $e) {
+        return $apiApp->returnNotFound($args['entity'], $args['id'], $response);
+    } catch (\Exception $e) {
+        return $apiApp->returnError($args['entity'], 'Delete item', $e->getMessage(), $response);
+    }
+});
+
+$app->post('/{entity}/', function (Request $request, Response $response, $args) use ($apiApp) {
+    $json = $apiApp->getData($request);
+    $json[IApiEntity::FIELD__USER] = $request->getHeaderLine('Authorization');
+
+    $repo = RepoApiCrudFactory::get($args['entity'], DB__CLASS, DB__NAME);
+    $existed = $repo->findOne($json);
+
+    if ($existed) {
+        return $apiApp->returnError($args['entity'], 'create', 'Already exists', $response);
+    }
+
+    return $apiApp->insertOne($response, $args['entity'], $json);
+});
+
+//для кросс-доменных запросов
+$app->options('/{routes:.+}', function ($request, $response) {
     return $response;
 });
 

@@ -29,5 +29,7 @@ phpunit.phar
 tests/_output/*
 tests/_support/_generated
 
+resources/allowed_tokens.php
+
 .extas.install
 composer.lock
