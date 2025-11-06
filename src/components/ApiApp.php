@@ -138,7 +138,7 @@ class ApiApp
 
     public function getData(Request $request): array
     {
-        return json_decode($request->getBody(), true);
+        return json_decode($request->getBody(), true) ?: [];
     }
 
     protected function vanishResponseData(array &$data): void
