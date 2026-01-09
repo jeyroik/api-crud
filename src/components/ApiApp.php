@@ -110,6 +110,26 @@ class ApiApp
         return isset($allowed[$auth]);
     }
 
+    public function initBaseUsers(): bool
+    {
+        $inited = $this->getRepo('user')->findAll();
+
+        if (count($inited)) {
+            return true;
+        }
+
+        $allowed = include __DIR__ . '/../../resources/allowed_tokens.php';
+
+        foreach ($allowed as $user => $isOn) {
+            $this->getRepo('user')->insertOne([
+                IApiEntity::FIELD__USER => $user,
+                'allowed' => true
+            ]);
+        }
+
+        return true;
+    }
+
     public function returnNotFound(string $entity, string $id, Response $response): Response
     {
         $response->getBody()->write(json_encode([
