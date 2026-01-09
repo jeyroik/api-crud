@@ -51,7 +51,7 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($app
         return $response->withStatus(401);
     }
 
-    if (!$apiApp->isAllowed($auth, $request->getUri()->getHost())) {
+    if (!$apiApp->isAllowed($auth, $request->getHeaderLine('Origin'))) {
         $response = $app->getResponseFactory()->createResponse();
         $response->getBody()->write('Access denied');
         
