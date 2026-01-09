@@ -4,6 +4,7 @@
     "require": {
         "jeyroik/i-have-repository-mongo": "0.*",
         "jeyroik/ihr-plugin-dates": "0.*",
+        "ramsey/uuid": "4.*",
         "slim/slim": "4.*",
         "slim/psr7": "1.*"
     },

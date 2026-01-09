@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Ramsey\Uuid\Nonstandard\Uuid;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -48,7 +49,7 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($app
         return $response->withStatus(401);
     }
 
-    if (!$apiApp->isAllowed($auth)) {
+    if (!$apiApp->isAllowed($auth, $request->getUri()->getHost())) {
         $response = $app->getResponseFactory()->createResponse();
         $response->getBody()->write('Access denied');
         
@@ -67,6 +68,16 @@ $app->addErrorMiddleware(
     logErrors: true, 
     logErrorDetails: true
 );
+
+$app->get('/init/', function (Request $request, Response $response, $args) use ($app, $apiApp) {
+    
+    $apiApp->initBaseUsers();
+    $response->getBody()->write(json_encode([
+        'inited' => 'success'
+    ]));
+
+    return $response->withStatus(200);
+});
 
 $app->get('/{entity}/{offset}/{limit}/', function (Request $request, Response $response, $args) use ($app, $apiApp) {
     try {
@@ -116,6 +127,21 @@ $app->delete('/{entity}/{id}', function (Request $request, Response $response, $
     } catch (\Exception $e) {
         return $apiApp->returnError($args['entity'], 'Delete item', $e->getMessage(), $response);
     }
+});
+
+$app->post('/user/', function (Request $request, Response $response, $args) use ($apiApp) {
+    $json = $apiApp->getData($request);
+    $repo = RepoApiCrudFactory::get('user', DB__CLASS, DB__NAME);
+    $existed = $repo->findOne($json);
+
+    if ($existed) {
+        return $apiApp->returnError('user', 'create', 'Already exists', $response);
+    }
+
+    $json[IApiEntity::FIELD__USER] = 'Bearer ' . Uuid::uuid4();
+    $json['__domains__'] = [$request->getUri()->getHost()];
+
+    return $apiApp->insertOne($response, $args['entity'], $json);
 });
 
 $app->post('/{entity}/', function (Request $request, Response $response, $args) use ($apiApp) {

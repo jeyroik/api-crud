@@ -103,11 +103,38 @@ class ApiApp
         return $response;
     }
 
-    public function isAllowed(string $auth): bool
+    public function isAllowed(string $auth, string $host): bool
     {
+        $allowed = $this->getRepo('user')->findOne([IApiEntity::FIELD__USER => $auth]);
+
+        if ($allowed) {
+            if (in_array('*', $allowed['__domains__']) || in_array($host, $allowed['__domains__'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function initBaseUsers(): bool
+    {
+        $inited = $this->getRepo('user')->findAll();
+
+        if (count($inited)) {
+            return true;
+        }
+
         $allowed = include __DIR__ . '/../../resources/allowed_tokens.php';
 
-        return isset($allowed[$auth]);
+        foreach ($allowed as $user => $isOn) {
+            $this->getRepo('user')->insertOne([
+                IApiEntity::FIELD__USER => $user,
+                '__domains__' => ['*'],
+                '__allowed__' => true
+            ]);
+        }
+
+        return true;
     }
 
     public function returnNotFound(string $entity, string $id, Response $response): Response
