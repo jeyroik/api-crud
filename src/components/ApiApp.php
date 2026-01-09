@@ -15,6 +15,7 @@ class ApiApp
 
     public function findOne(Response $response, string $entity, array $where): Response
     {
+        $this->prepareEntity($entity);
         $item = $this->getRepo($entity)->findOne($where);
 
         if (!$item) {
@@ -31,6 +32,7 @@ class ApiApp
 
     public function findAll(Response $response, string $entity, array $where, int $offset = 0, int $limit = 0): Response
     {
+        $this->prepareEntity($entity);
         $items = $this->getRepo($entity)->findAll($where, offset: $offset, limit: $limit);
 
         $result = [];
@@ -48,6 +50,7 @@ class ApiApp
 
     public function updateOne(Response $response, string $entity, array $where, array $values): Response
     {
+        $this->prepareEntity($entity);
         $db = $this->getRepo($entity);
         $item = $db->findOne($where);
 
@@ -75,6 +78,7 @@ class ApiApp
 
     public function deleteOne(Response $response, string $entity, array $where): Response
     {
+        $this->prepareEntity($entity);
         $db = $this->getRepo($entity);
 
         /**
@@ -95,6 +99,7 @@ class ApiApp
 
     public function insertOne(Response $response, string $entity, array $data): Response
     {
+        $this->prepareEntity($entity);
         $result = $this->getRepo($entity)->insertOne($data);
         $result = $result->__toArray();
 
@@ -141,6 +146,7 @@ class ApiApp
 
     public function returnNotFound(string $entity, string $id, Response $response): Response
     {
+        $this->prepareEntity($entity);
         $response->getBody()->write(json_encode([
             'error' => 'item not found',
             'error_details' => [
@@ -155,6 +161,7 @@ class ApiApp
 
     public function returnError(string $entity, string $method, string $error, Response $response): Response
     {
+        $this->prepareEntity($entity);
         $response->getBody()->write(json_encode([
             'error' => $method . ': Error occured',
             'error_details' => [
@@ -179,5 +186,12 @@ class ApiApp
         if (isset($data[IApiEntity::FIELD__SYSTEM_ID])) {
             unset($data[IApiEntity::FIELD__SYSTEM_ID]);
         }     
+    }
+
+    protected function prepareEntity(string &$entity): void
+    {
+        $entity = preg_replace('~[^A-Za-z0-9_]+~', '_', $entity); // заменили спецсимволы на _
+        $entity = preg_replace('~_+~', '_', $entity);             // сжали несколько _ подряд
+        $entity = trim($entity, '_');                             // убрали _ в начале и конце
     }
 }
