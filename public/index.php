@@ -123,7 +123,7 @@ $app->delete('/{entity}/{id}', function (Request $request, Response $response, $
 
 $app->post('/user/', function (Request $request, Response $response, $args) use ($apiApp) {
     $json = $apiApp->getData($request);
-    $json[IApiEntity::FIELD__ID] = 'Bearer ' . Uuid::uuid4();
+    $json[IApiUser::FIELD__TOKEN]  = 'Bearer ' . Uuid::uuid4();
     $json[IApiEntity::FIELD__USER] = $request->getHeaderLine('Authorization');
 
     if (!isset($json[IApiUser::FIELD__DOMAINS])) {

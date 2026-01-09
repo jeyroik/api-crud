@@ -106,7 +106,7 @@ class ApiApp
 
     public function isAllowed(string $auth, string $host): bool
     {
-        $allowed = $this->getRepo('user')->findOne([IApiEntity::FIELD__ID => $auth]);
+        $allowed = $this->getRepo('user')->findOne([IApiUser::FIELD__TOKEN => $auth]);
 
         if ($allowed) {
             if (in_array('*', $allowed[IApiUser::FIELD__DOMAINS]) || in_array($host, $allowed[IApiUser::FIELD__DOMAINS])) {
@@ -129,8 +129,8 @@ class ApiApp
 
         foreach ($allowed as $user => $isOn) {
             $this->getRepo('user')->insertOne([
-                IApiEntity::FIELD__ID => $user,
                 IApiEntity::FIELD__USER => $user,
+                IApiUser::FIELD__TOKEN => $user,
                 IApiUser::FIELD__DOMAINS => ['*'],
                 IApiUser::FIELD__IS_ALLOWED => true
             ]);
