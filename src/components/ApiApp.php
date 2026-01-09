@@ -103,11 +103,17 @@ class ApiApp
         return $response;
     }
 
-    public function isAllowed(string $auth): bool
+    public function isAllowed(string $auth, string $host): bool
     {
-        $allowed = include __DIR__ . '/../../resources/allowed_tokens.php';
+        $allowed = $this->getRepo('user')->findOne([IApiEntity::FIELD__USER => $auth]);
 
-        return isset($allowed[$auth]);
+        if ($allowed) {
+            if (in_array('*', $allowed['__domains__']) || in_array($host, $allowed['__domains__'])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function initBaseUsers(): bool
@@ -123,7 +129,8 @@ class ApiApp
         foreach ($allowed as $user => $isOn) {
             $this->getRepo('user')->insertOne([
                 IApiEntity::FIELD__USER => $user,
-                'allowed' => true
+                '__domains__' => ['*'],
+                '__allowed__' => true
             ]);
         }
 

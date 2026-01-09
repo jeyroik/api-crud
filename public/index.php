@@ -49,7 +49,7 @@ $authMiddleware = function (Request $request, RequestHandler $handler) use ($app
         return $response->withStatus(401);
     }
 
-    if (!$apiApp->isAllowed($auth)) {
+    if (!$apiApp->isAllowed($auth, $request->getUri()->getHost())) {
         $response = $app->getResponseFactory()->createResponse();
         $response->getBody()->write('Access denied');
         
@@ -139,6 +139,7 @@ $app->post('/user/', function (Request $request, Response $response, $args) use 
     }
 
     $json[IApiEntity::FIELD__USER] = 'Bearer ' . Uuid::uuid4();
+    $json['__domains__'] = [$request->getUri()->getHost()];
 
     return $apiApp->insertOne($response, $args['entity'], $json);
 });
