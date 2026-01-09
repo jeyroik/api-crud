@@ -123,13 +123,6 @@ $app->delete('/{entity}/{id}', function (Request $request, Response $response, $
 
 $app->post('/user/', function (Request $request, Response $response, $args) use ($apiApp) {
     $json = $apiApp->getData($request);
-    $repo = RepoApiCrudFactory::get('user', DB__CLASS, DB__NAME);
-    $existed = $repo->findOne($json);
-
-    if ($existed) {
-        return $apiApp->returnError('user', 'create', 'Already exists', $response);
-    }
-
     $json[IApiEntity::FIELD__USER] = 'Bearer ' . Uuid::uuid4();
 
     if (!isset($json[IApiUser::FIELD__DOMAINS])) {
