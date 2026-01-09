@@ -24,6 +24,7 @@ defined('REPOSITORY__PLUGINS_FILE') or define(
 // Instantiate App
 $app = AppFactory::create();
 $apiApp = new ApiApp();
+$apiApp->initBaseUsers();
 
 // Middleware для CORS
 $app->add(function ($request, $handler) {
@@ -68,16 +69,6 @@ $app->addErrorMiddleware(
     logErrors: true, 
     logErrorDetails: true
 );
-
-$app->get('/init/', function (Request $request, Response $response, $args) use ($app, $apiApp) {
-    
-    $apiApp->initBaseUsers();
-    $response->getBody()->write(json_encode([
-        'inited' => 'success'
-    ]));
-
-    return $response->withStatus(200);
-});
 
 $app->get('/{entity}/{offset}/{limit}/', function (Request $request, Response $response, $args) use ($app, $apiApp) {
     try {
