@@ -5,6 +5,7 @@ use jeyroik\components\exceptions\ExceptionNotFound;
 use jeyroik\components\repositories\THasApiCrudRepo;
 use jeyroik\interfaces\attributes\IHaveId;
 use jeyroik\interfaces\entities\IApiEntity;
+use jeyroik\interfaces\entities\IApiUser;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -108,7 +109,7 @@ class ApiApp
         $allowed = $this->getRepo('user')->findOne([IApiEntity::FIELD__USER => $auth]);
 
         if ($allowed) {
-            if (in_array('*', $allowed['__domains__']) || in_array($host, $allowed['__domains__'])) {
+            if (in_array('*', $allowed[IApiUser::FIELD__DOMAINS]) || in_array($host, $allowed[IApiUser::FIELD__DOMAINS])) {
                 return true;
             }
         }
@@ -129,8 +130,8 @@ class ApiApp
         foreach ($allowed as $user => $isOn) {
             $this->getRepo('user')->insertOne([
                 IApiEntity::FIELD__USER => $user,
-                '__domains__' => ['*'],
-                '__allowed__' => true
+                IApiUser::FIELD__DOMAINS => ['*'],
+                IApiUser::FIELD__IS_ALLOWED => true
             ]);
         }
 

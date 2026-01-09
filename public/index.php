@@ -5,6 +5,7 @@ use jeyroik\components\ApiApp;
 use jeyroik\components\exceptions\ExceptionNotFound;
 use jeyroik\components\repositories\RepoApiCrudFactory;
 use jeyroik\interfaces\entities\IApiEntity;
+use jeyroik\interfaces\entities\IApiUser;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
@@ -130,9 +131,12 @@ $app->post('/user/', function (Request $request, Response $response, $args) use 
     }
 
     $json[IApiEntity::FIELD__USER] = 'Bearer ' . Uuid::uuid4();
-    $json['__domains__'] = [$request->getUri()->getHost()];
 
-    return $apiApp->insertOne($response, $args['entity'], $json);
+    if (!isset($json[IApiUser::FIELD__DOMAINS])) {
+        $json[IApiUser::FIELD__DOMAINS] = [$request->getUri()->getHost()];
+    }
+
+    return $apiApp->insertOne($response, 'user', $json);
 });
 
 $app->post('/{entity}/', function (Request $request, Response $response, $args) use ($apiApp) {
