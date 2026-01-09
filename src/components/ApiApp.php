@@ -129,6 +129,7 @@ class ApiApp
 
         foreach ($allowed as $user => $isOn) {
             $this->getRepo('user')->insertOne([
+                IApiEntity::FIELD__ID => $user,
                 IApiEntity::FIELD__USER => $user,
                 IApiUser::FIELD__DOMAINS => ['*'],
                 IApiUser::FIELD__IS_ALLOWED => true
