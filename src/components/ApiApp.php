@@ -118,9 +118,9 @@ class ApiApp
 
     public function initBaseUsers(): bool
     {
-        $inited = $this->getRepo('user')->findAll();
+        $inited = $this->getRepo('user')->findOne();
 
-        if (count($inited)) {
+        if ($inited) {
             return true;
         }
 
