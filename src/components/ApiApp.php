@@ -174,6 +174,13 @@ class ApiApp
 
     public function getData(Request $request): array
     {
+        if ($request->isGet()) {
+            $queryParams = $request->getQueryParams();
+            if (!empty($queryParams)) {
+                return $queryParams;
+            }
+        }
+        
         return json_decode($request->getBody(), true) ?: [];
     }
 
