@@ -37,7 +37,7 @@ $app->add(function ($request, $handler) {
 });
 
 $authMiddleware = function (Request $request, RequestHandler $handler) use ($app, $apiApp) {
-    if ($request->isOptions()) {
+    if ($request->getMethod() === 'OPTIONS') {
         return $handler->handle($request);
     }
 
